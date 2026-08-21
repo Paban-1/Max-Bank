@@ -67,10 +67,10 @@ async function userLoginController(req, res) {
     }
 
     // create tokan for stay login user
-    const token = jwt.sign({ userid: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" })
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" })
 
     // set token to the cookies
-    res.cookie("jwt_token", token)
+    res.cookie("token", token)
     res.status(200).json({
         user: {
             _id: user._id,
