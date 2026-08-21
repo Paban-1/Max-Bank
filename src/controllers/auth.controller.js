@@ -1,6 +1,6 @@
 const userModel = require("../models/user.model")
 const jwt = require('jsonwebtoken')
-
+const eamilService = require("../services/email.service")
 
 /**
  * - user Register controller
@@ -39,6 +39,8 @@ async function userRegisterConntroller(req, res) {
             name: user.name
         }
     })
+
+    await eamilService.sendRegistartionEmail(user.email, user.name)
 }
 
 /**
@@ -58,9 +60,9 @@ async function userLoginController(req, res) {
 
     const isValidPassword = await user.comparePassword(password)
 
-    if(!isValidPassword){
+    if (!isValidPassword) {
         return res.status(401).json({
-            message:"Email or Password is incorrect"
+            message: "Email or Password is incorrect"
         })
     }
 
