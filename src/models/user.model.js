@@ -19,7 +19,13 @@ const userSchema = new mongoose.Schema({
         required: [true, "Password is required of creating an account"],
         minlength: [6, "Password should be contain moure the 6 chracter"],
         select: false
-    }
+    },
+    systemUser: {
+        type: Boolean,
+        default: false,
+        immutable: true,
+        select: false
+    },
 }, {
     timestamps: true
 })
@@ -28,13 +34,13 @@ const userSchema = new mongoose.Schema({
 userSchema.pre("save", async function () {
     // If password is not modifi the go for next
     if (!this.isModified("password")) {
-        return 
+        return
     }
 
     // if password is modified then hash tha password
     const hash = await bcrypt.hash(this.password, 10)
-   this.password = hash
-   return
+    this.password = hash
+    return
 })
 
 //  return if the hash passwowrd is same as user given 
