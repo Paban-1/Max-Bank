@@ -83,7 +83,7 @@ async function createTransaction(req, res) {
     /**
      * - Check account status
      */
-    if (fromuserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE ") {
+    if (fromuserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE") {
         return res.status(400).json({
             message: "Both fromAccount and toAccount must be ACTIVE to process transaction"
         })
@@ -103,43 +103,59 @@ async function createTransaction(req, res) {
         })
     }
 
+    let transaction;
+    try {
+        /**
+         * - Create transaction (PENDING)
+         */
+        const session = await mongoose.startSession()
+        session.startTransaction()
 
-    /**
-     * - Create transaction (PENDING)
-     */
-    const session = await mongoose.startSession()
-    session.startTransaction()
+        transaction = (await transactionModel.create([{
+            fromAccount,
+            toAccount,
+            amount,
+            idempotencyKey,
+            status: "PENDING"
+        }], { session }))[0]
 
-    const transaction = await transactionModel.create({
-        fromAccount,
-        toAccount,
-        amount,
-        idempotencyKey,
-        status: "PENDING"
-    }, { session })
+        const debitLedgerEntry = await ledgerModel.create([{
+            account: fromAccount,
+            amount: amount,
+            transaction: transaction._id,
+            type: "DEBIT",
+        }], { session })
 
-    const debitLedgerEntry = await ledgerModel.create({
-        account: fromAccount,
-        amount: amount,
-        transaction: transaction._id,
-        type: "DEBIT",
-    }, { session })
+        // await (() => {
+        //     return new Promise((resolve) => setTimeout(resolve, 15 * 1000))
+        // })()
 
-    const creditLedgerEntry = await ledgerModel.create({
-        account: toAccount,
-        amount: amount,
-        transaction: transaction._id,
-        type: "CREDIT",
-    }, { session })
+        const creditLedgerEntry = await ledgerModel.create([{
+            account: toAccount,
+            amount: amount,
+            transaction: transaction._id,
+            type: "CREDIT",
+        }], { session })
 
-    transaction.status = "COMPLETED"
-    await transaction.save({ session })
-    session.endSession()
+        await transactionModel.findOneAndUpdate(
+            { _id: transaction._id },
+            { status: "COMPLETED" },
+            { session, new: true }
+        )
+
+        // await transaction.save({ session })
+        await session.commitTransaction()
+        session.endSession()
+    } catch (err) {
+        return res.status(400).json({
+            message: "Transaction is Pending due to some issue, please try again later"
+        })
+    }
 
     /**
      * - Send email Notification
      */
-    await emailServices.sendTransactionEmail(req.user.email, req.user.name, toAccount._id)
+    await emailServices.sendTransactionEmail(req.user.email, req.user.name,amount, toAccount._id)
 
     return res.status(201).json({
         message: "Transaction Completed Sucessfully",

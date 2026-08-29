@@ -29,7 +29,7 @@ accountSchema.index({ user: 1, status: 1 })
 
 accountSchema.methods.getBalance = async function () {
     const balanceData = await ledgerModel.aggregate([
-        { $match: { accounte: this._id } },
+        { $match: { account: this._id } },
         {
             $group: {
                 _id: null,
@@ -45,7 +45,7 @@ accountSchema.methods.getBalance = async function () {
                 totalCredit: {
                     $sum: {
                         $cond: [
-                            { $eq: ["$type", "Credit"] },
+                            { $eq: ["$type", "CREDIT"] },
                             "$amount",
                             0
                         ]
@@ -54,7 +54,7 @@ accountSchema.methods.getBalance = async function () {
             }
         },
         {
-            $eproject: {
+            $project: {
                 _id: 0,
                 balance: { $subtract: ["$totalCredit", "$totalDebit"] }
             }
