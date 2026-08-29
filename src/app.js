@@ -18,6 +18,11 @@ const transactionRoutes = require("./routes/transaction.routes")
 /**
  * - Use Routes
  */
+
+app.get("/", (req, res) => {
+    res.send("Ledger Service is Up and running")
+})
+
 app.use("/api/auth", authRouter)
 app.use("/api/accounts", accountRouter)
 app.use("/api/transaction", transactionRoutes)
